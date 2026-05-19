@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0f1512">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Panini 2026">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Figuritas Panini — Mundial 2026</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0f1512;
+  --surface:#161e1a;
+  --surface2:#1c2820;
+  --border:#2a3d33;
+  --green:#1D9E75;
+  --green-dim:#0F6E56;
+  --green-pale:#0a2318;
+  --amber:#d4870f;
+  --amber-pale:#2a1e05;
+  --text:#e8f0eb;
+  --text2:#8aab96;
+  --text3:#4a6a55;
+  --radius:10px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden}
+body{display:flex;flex-direction:column}
+
+/* HEADER */
+.app-header{
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:env(safe-area-inset-top,12px) 16px 12px;
+  padding-top:calc(env(safe-area-inset-top,0px) + 12px);
+  flex-shrink:0;
+}
+.app-title{font-size:17px;font-weight:700;color:var(--text);letter-spacing:-0.3px}
+.app-sub{font-size:12px;color:var(--text2);margin-top:1px}
+
+/* STATS BAR */
+.stats-bar{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  background:var(--surface);border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.stat-item{padding:10px 4px;text-align:center;border-right:1px solid var(--border)}
+.stat-item:last-child{border-right:none}
+.stat-n{font-size:20px;font-weight:700;color:var(--green);line-height:1}
+.stat-n.amber{color:var(--amber)}
+.stat-n.muted{color:var(--text)}
+.stat-label{font-size:9px;color:var(--text3);margin-top:3px;text-transform:uppercase;letter-spacing:0.04em}
+
+/* FILTER BAR */
+.filter-bar{
+  display:flex;gap:6px;padding:10px 12px;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  overflow-x:auto;flex-shrink:0;scrollbar-width:none;
+}
+.filter-bar::-webkit-scrollbar{display:none}
+.filter-pill{
+  flex-shrink:0;padding:5px 12px;border-radius:99px;
+  font-size:12px;font-weight:500;cursor:pointer;
+  background:var(--surface2);color:var(--text2);
+  border:1px solid var(--border);white-space:nowrap;
+  transition:all 0.15s;
+}
+.filter-pill.active{background:var(--green);color:#fff;border-color:var(--green)}
+
+/* SCROLL AREA */
+.scroll-area{flex:1;overflow-y:auto;padding:12px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+
+/* GROUP */
+.group-block{margin-bottom:20px}
+.group-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;padding-left:2px}
+
+/* COUNTRY CARD */
+.country-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:12px;margin-bottom:8px;
+}
+.card-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.flag{font-size:22px;line-height:1;width:28px;text-align:center}
+.card-info{flex:1;min-width:0}
+.card-name{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-count{font-size:11px;color:var(--text2);margin-top:1px}
+.pbar{height:3px;background:var(--surface2);border-radius:99px;overflow:hidden;margin-bottom:10px}
+.pbar-fill{height:100%;background:var(--green);border-radius:99px;transition:width 0.3s}
+.pbar-fill.done{background:#f0c419}
+
+/* STICKER GRID */
+.sticker-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:3px}
+.sticker{
+  aspect-ratio:1;border-radius:5px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:8px;font-weight:600;cursor:pointer;
+  background:var(--surface2);color:var(--text3);
+  border:1px solid var(--border);
+  transition:transform 0.08s,background 0.1s;
+  user-select:none;
+}
+.sticker:active{transform:scale(0.85)}
+.sticker.owned{background:var(--green-dim);border-color:var(--green);color:#a8f0d4}
+.sticker.repeated{background:var(--amber-pale);border-color:var(--amber);color:#f0c77a}
+
+/* LEGEND */
+.legend{display:flex;gap:12px;padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+.leg-dot{width:10px;height:10px;border-radius:3px}
+
+/* BOTTOM BAR */
+.bottom-bar{
+  background:var(--surface);border-top:1px solid var(--border);
+  padding:8px 16px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 8px);
+  display:flex;gap:8px;flex-shrink:0;
+}
+.btn{
+  flex:1;padding:10px;border-radius:var(--radius);
+  font-size:13px;font-weight:600;cursor:pointer;border:none;
+  transition:opacity 0.15s;
+}
+.btn:active{opacity:0.7}
+.btn-reset{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.btn-export{background:var(--green);color:#fff}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:#1D9E75;color:#fff;padding:8px 18px;border-radius:99px;
+  font-size:13px;font-weight:600;opacity:0;transition:all 0.3s;pointer-events:none;
+  white-space:nowrap;z-index:999;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* INSTALL BANNER */
+.install-banner{
+  background:var(--green-pale);border-bottom:1px solid var(--green-dim);
+  padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;
+}
+.install-text{font-size:12px;color:var(--text2);flex:1;line-height:1.4}
+.install-btn{
+  padding:6px 14px;background:var(--green);color:#fff;border:none;
+  border-radius:99px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;
+}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="app-title">⚽ Figuritas Panini · Mundial 2026</div>
+  <div class="app-sub">980 figuritas · 48 países · 12 grupos</div>
+</div>
+
+<div class="install-banner hidden" id="install-banner">
+  <div class="install-text">📲 Instalá la app en tu pantalla de inicio para usarla sin internet</div>
+  <button class="install-btn" id="install-btn">Instalar</button>
+</div>
+
+<div class="stats-bar">
+  <div class="stat-item"><div class="stat-n" id="s-owned">0</div><div class="stat-label">Tenidas</div></div>
+  <div class="stat-item"><div class="stat-n amber" id="s-repeated">0</div><div class="stat-label">Repetidas</div></div>
+  <div class="stat-item"><div class="stat-n muted" id="s-missing">980</div><div class="stat-label">Faltantes</div></div>
+  <div class="stat-item"><div class="stat-n" id="s-pct">0%</div><div class="stat-label">Completo</div></div>
+</div>
+
+<div class="legend">
+  <div class="leg-item"><div class="leg-dot" style="background:var(--surface2);border:1px solid var(--border)"></div>Faltante</div>
+  <div class="leg-item"><div class="leg-dot" style="background:var(--green-dim)"></div>Tenida (1 tap)</div>
+  <div class="leg-item"><div class="leg-dot" style="background:var(--amber-pale);border:1px solid var(--amber)"></div>Repetida (2 taps)</div>
+</div>
+
+<div class="filter-bar" id="filter-bar"></div>
+
+<div class="scroll-area" id="scroll-area"></div>
+
+<div class="bottom-bar">
+  <button class="btn btn-reset" onclick="confirmReset()">🔄 Reiniciar</button>
+  <button class="btn btn-export" onclick="exportStats()">📋 Mis faltantes</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const GROUPS = {
+  A:{ label:"Grupo A", countries:[
+    {name:"Chequia",flag:"🇨🇿",code:"CZE"},
+    {name:"México",flag:"🇲🇽",code:"MEX"},
+    {name:"Sudáfrica",flag:"🇿🇦",code:"RSA"},
+    {name:"Corea del Sur",flag:"🇰🇷",code:"KOR"},
+  ]},
+  B:{ label:"Grupo B", countries:[
+    {name:"Bosnia y Herz.",flag:"🇧🇦",code:"BIH"},
+    {name:"Canadá",flag:"🇨🇦",code:"CAN"},
+    {name:"Catar",flag:"🇶🇦",code:"QAT"},
+    {name:"Suiza",flag:"🇨🇭",code:"SUI"},
+  ]},
+  C:{ label:"Grupo C", countries:[
+    {name:"Brasil",flag:"🇧🇷",code:"BRA"},
+    {name:"Haití",flag:"🇭🇹",code:"HAI"},
+    {name:"Marruecos",flag:"🇲🇦",code:"MAR"},
+    {name:"Escocia",flag:"🏴󠁧󠁢󠁳󠁣󠁴󠁿",code:"SCO"},
+  ]},
+  D:{ label:"Grupo D", countries:[
+    {name:"Australia",flag:"🇦🇺",code:"AUS"},
+    {name:"Paraguay",flag:"🇵🇾",code:"PAR"},
+    {name:"Turquía",flag:"🇹🇷",code:"TUR"},
+    {name:"Estados Unidos",flag:"🇺🇸",code:"USA"},
+  ]},
+  E:{ label:"Grupo E", countries:[
+    {name:"Curazao",flag:"🇨🇼",code:"CUW"},
+    {name:"Ecuador",flag:"🇪🇨",code:"ECU"},
+    {name:"Alemania",flag:"🇩🇪",code:"GER"},
+    {name:"Costa de Marfil",flag:"🇨🇮",code:"CIV"},
+  ]},
+  F:{ label:"Grupo F", countries:[
+    {name:"Japón",flag:"🇯🇵",code:"JAP"},
+    {name:"Países Bajos",flag:"🇳🇱",code:"NED"},
+    {name:"Suecia",flag:"🇸🇪",code:"SWE"},
+    {name:"Túnez",flag:"🇹🇳",code:"TUN"},
+  ]},
+  G:{ label:"Grupo G", countries:[
+    {name:"Bélgica",flag:"🇧🇪",code:"BEL"},
+    {name:"Egipto",flag:"🇪🇬",code:"EGY"},
+    {name:"Irán",flag:"🇮🇷",code:"IRN"},
+    {name:"Nueva Zelanda",flag:"🇳🇿",code:"NZL"},
+  ]},
+  H:{ label:"Grupo H", countries:[
+    {name:"Cabo Verde",flag:"🇨🇻",code:"CPV"},
+    {name:"Arabia Saudita",flag:"🇸🇦",code:"KSA"},
+    {name:"España",flag:"🇪🇸",code:"ESP"},
+    {name:"Uruguay",flag:"🇺🇾",code:"URU"},
+  ]},
+  I:{ label:"Grupo I", countries:[
+    {name:"Francia",flag:"🇫🇷",code:"FRA"},
+    {name:"Irak",flag:"🇮🇶",code:"IRQ"},
+    {name:"Noruega",flag:"🇳🇴",code:"NOR"},
+    {name:"Senegal",flag:"🇸🇳",code:"SEN"},
+  ]},
+  J:{ label:"Grupo J", countries:[
+    {name:"Argelia",flag:"🇩🇿",code:"ALG"},
+    {name:"Argentina",flag:"🇦🇷",code:"ARG"},
+    {name:"Austria",flag:"🇦🇹",code:"AUT"},
+    {name:"Jordania",flag:"🇯🇴",code:"JOR"},
+  ]},
+  K:{ label:"Grupo K", countries:[
+    {name:"Colombia",flag:"🇨🇴",code:"COL"},
+    {name:"R.D. Congo",flag:"🇨🇩",code:"COD"},
+    {name:"Portugal",flag:"🇵🇹",code:"POR"},
+    {name:"Uzbekistán",flag:"🇺🇿",code:"UZB"},
+  ]},
+  L:{ label:"Grupo L", countries:[
+    {name:"Croacia",flag:"🇭🇷",code:"CRO"},
+    {name:"Inglaterra",flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿",code:"ENG"},
+    {name:"Ghana",flag:"🇬🇭",code:"GHA"},
+    {name:"Panamá",flag:"🇵🇦",code:"PAN"},
+  ]},
+  SPEC:{ label:"Especiales", countries:[
+    {name:"Especiales FIFA",flag:"🏆",code:"FWC"},
+  ]},
+};
+
+function getNums(code) {
+  if(code==='FWC') return Array.from({length:20},(_,i)=>i===0?'FW-00':`FW-${i}`);
+  return Array.from({length:20},(_,i)=>`${code}-${i+1}`);
+}
+
+let state={};
+let activeFilter='ALL';
+
+function load(){
+  try{ const s=localStorage.getItem('panini2026pwa'); if(s) state=JSON.parse(s); }catch(e){}
+}
+function save(){
+  try{ localStorage.setItem('panini2026pwa',JSON.stringify(state)); }catch(e){}
+}
+function get(id){ return state[id]||0; }
+function cycle(id){
+  state[id]=(get(id)+1)%3;
+  save();
+  const el=document.getElementById('st-'+id);
+  if(el) el.className='sticker'+(state[id]===1?' owned':state[id]===2?' repeated':'');
+  const code=id.split('-')[0];
+  updateCardProgress(code);
+  updateStats();
+}
+
+function updateStats(){
+  let owned=0,rep=0,total=980;
+  Object.values(state).forEach(v=>{if(v===1)owned++;else if(v===2)rep++;});
+  document.getElementById('s-owned').textContent=owned;
+  document.getElementById('s-repeated').textContent=rep;
+  document.getElementById('s-missing').textContent=total-owned-rep;
+  document.getElementById('s-pct').textContent=Math.round(owned/total*100)+'%';
+}
+
+function updateCardProgress(code){
+  const nums=getNums(code);
+  const owned=nums.filter(id=>get(id)>0).length;
+  const el=document.getElementById('prog-'+code);
+  const bar=document.getElementById('bar-'+code);
+  if(el) el.textContent=owned+'/'+nums.length;
+  if(bar){
+    bar.style.width=Math.round(owned/nums.length*100)+'%';
+    bar.className='pbar-fill'+(owned===nums.length?' done':'');
+  }
+}
+
+function buildCard(c){
+  const nums=getNums(c.code);
+  const stickers=nums.map(id=>{
+    const st=get(id);
+    const label=id.split('-').pop();
+    return `<div class="sticker${st===1?' owned':st===2?' repeated':''}" id="st-${id}" onclick="cycle('${id}')">${label}</div>`;
+  }).join('');
+  return `<div class="country-card">
+    <div class="card-header">
+      <span class="flag">${c.flag}</span>
+      <div class="card-info">
+        <div class="card-name">${c.name}</div>
+        <div class="card-count" id="prog-${c.code}">0/${nums.length}</div>
+      </div>
+    </div>
+    <div class="pbar"><div class="pbar-fill" id="bar-${c.code}" style="width:0%"></div></div>
+    <div class="sticker-grid">${stickers}</div>
+  </div>`;
+}
+
+function buildFilterBar(){
+  const bar=document.getElementById('filter-bar');
+  const pills=[{key:'ALL',label:'Todos'},...Object.entries(GROUPS).map(([k,g])=>({key:k,label:g.label}))];
+  bar.innerHTML=pills.map(p=>`<div class="filter-pill${p.key===activeFilter?' active':''}" onclick="setFilter('${p.key}')">${p.label}</div>`).join('');
+}
+
+function setFilter(key){
+  activeFilter=key;
+  buildFilterBar();
+  renderAlbum();
+}
+
+function renderAlbum(){
+  const area=document.getElementById('scroll-area');
+  const entries=activeFilter==='ALL'?Object.entries(GROUPS):Object.entries(GROUPS).filter(([k])=>k===activeFilter);
+  area.innerHTML=entries.map(([k,g])=>`
+    <div class="group-block">
+      <div class="group-label">${g.label}</div>
+      ${g.countries.map(buildCard).join('')}
+    </div>
+  `).join('');
+  Object.values(GROUPS).forEach(g=>g.countries.forEach(c=>updateCardProgress(c.code)));
+  area.scrollTop=0;
+}
+
+function confirmReset(){
+  if(confirm('¿Reiniciar toda la planilla? Se perderá el progreso guardado.')){
+    state={};save();renderAlbum();updateStats();showToast('Planilla reiniciada');
+  }
+}
+
+function exportStats(){
+  const lines=['FIGURITAS FALTANTES — PANINI MUNDIAL 2026',''];
+  Object.values(GROUPS).forEach(g=>{
+    g.countries.forEach(c=>{
+      const nums=getNums(c.code);
+      const missing=nums.filter(id=>get(id)===0).map(id=>id.split('-').pop());
+      if(missing.length>0 && missing.length<nums.length){
+        lines.push(`${c.flag} ${c.name}: ${missing.join(', ')}`);
+      }
+    });
+  });
+  const text=lines.join('\n');
+  if(navigator.share){
+    navigator.share({title:'Mis faltantes Panini 2026',text});
+  } else {
+    navigator.clipboard.writeText(text).then(()=>showToast('¡Copiado al portapapeles!'));
+  }
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// PWA install
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredPrompt=e;
+  document.getElementById('install-banner').classList.remove('hidden');
+});
+document.getElementById('install-btn').addEventListener('click',async()=>{
+  if(!deferredPrompt)return;
+  deferredPrompt.prompt();
+  const{outcome}=await deferredPrompt.userChoice;
+  if(outcome==='accepted') document.getElementById('install-banner').classList.add('hidden');
+  deferredPrompt=null;
+});
+window.addEventListener('appinstalled',()=>{
+  document.getElementById('install-banner').classList.add('hidden');
+  showToast('¡App instalada!');
+});
+
+// Service Worker
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+
+load();
+buildFilterBar();
+renderAlbum();
+updateStats();
+</script>
+</body>
+</html>
