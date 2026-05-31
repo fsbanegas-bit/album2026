@@ -241,6 +241,8 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opac
     <button class="install-btn" id="install-btn">Instalar</button>
   </div>
 
+  <div id="cloud-banner"></div>
+
   <div class="stats-card">
     <div class="ring-wrap">
       <svg viewBox="0 0 122 122"><defs><linearGradient id="ringgrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b82f6"/><stop offset=".5" stop-color="#6366f1"/><stop offset="1" stop-color="#22c55e"/></linearGradient></defs>
@@ -279,6 +281,20 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opac
 </div></div>
 <div class="toast" id="toast"></div>
 
+<style>
+.cloud-card{background:var(--card);border-radius:18px;box-shadow:0 14px 30px -16px rgba(47,80,200,.5),inset 0 1px 0 rgba(255,255,255,.9);padding:14px;margin-bottom:14px;border:1.5px solid rgba(245,158,11,.4)}
+.cloud-card .ct{font-size:13px;color:var(--ink2);font-weight:700;line-height:1.45;margin-bottom:10px}
+.cloud-card .ct b{color:var(--orange)}
+.cloud-up{width:100%;padding:13px;border:none;cursor:pointer;border-radius:14px;color:#fff;font-size:14px;font-weight:800;letter-spacing:.3px;background:linear-gradient(135deg,#fbbf24,#f59e0b,#d97706);box-shadow:0 12px 26px -10px rgba(217,119,6,.8)}
+.cloud-up:active{transform:scale(.98)}
+.cloud-chip{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:800;padding:9px 14px;border-radius:99px;margin-bottom:14px}
+.cloud-chip.ok{background:linear-gradient(135deg,#d1fae5,#bbf7d0);color:#15803d;box-shadow:inset 0 1px 0 rgba(255,255,255,.6)}
+.cloud-chip.off{background:#eef2f9;color:var(--muted)}
+.cloud-dot{width:9px;height:9px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 4px rgba(34,197,94,.2)}
+.cloud-chip.off .cloud-dot{background:#94a3b8;box-shadow:none}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 const COCA_COUNT = 12;
 const GROUPS = {
@@ -359,11 +375,11 @@ function isFull(code){ const s=SECTIONS[code]; return s&&s.ids.every(id=>get(id)
 function tap(id){
   const code=ID_TO_CODE[id], wasFull=isFull(code), cur=get(id);
   state[id]=cur.t===0?{t:1,r:0}:{t:1,r:cur.r+1};
-  save(); refreshSticker(id); updateCardProgress(code); updateStats();
+  save(); pushCloud(id); refreshSticker(id); updateCardProgress(code); updateStats();
   if(!wasFull&&isFull(code)) celebrate(code);
 }
 function resetSticker(id){ if(!state[id])return; const code=ID_TO_CODE[id]; delete state[id];
-  save(); refreshSticker(id); updateCardProgress(code); updateStats(); haptic(); }
+  save(); pushCloud(id); refreshSticker(id); updateCardProgress(code); updateStats(); haptic(); }
 function refreshSticker(id){
   const el=document.getElementById('st-'+id); if(!el) return; const v=get(id);
   if(el.classList.contains('coca-tile')){ el.classList.toggle('owned',v.t===1&&v.r===0); el.classList.toggle('repeated',v.t===1&&v.r>=1); }
@@ -467,8 +483,77 @@ window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();dp=e;docume
 document.getElementById('install-btn').addEventListener('click',async()=>{if(!dp)return;dp.prompt();const{outcome}=await dp.userChoice;if(outcome==='accepted')document.getElementById('install-banner').classList.add('hidden');dp=null;});
 window.addEventListener('appinstalled',()=>{document.getElementById('install-banner').classList.add('hidden');showToast('¡App instalada!');});
 if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+/* ================= SUPABASE (nube + realtime) ================= */
+const SB_URL='https://bgjqmketdwdrsmmokran.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJnanFta2V0ZHdkcnNtbW9rcmFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyMzM5MDksImV4cCI6MjA5NTgwOTkwOX0.9WP3cVfyj4x5ARtLoBZ5yvAuLS3ls3ontirR2jhtmHQ';
+let sb=null, MODE='local'; // 'local' | 'cloud-empty' | 'cloud'
+
+function cloudBanner(){return document.getElementById('cloud-banner');}
+function showMigrate(){
+  cloudBanner().innerHTML='<div class="cloud-card"><div class="ct">📱 ➡️ ☁️ Tus figuritas están <b>solo en este celular</b>. Subilas a la nube para compartir el álbum con la familia y verlo sincronizado en tiempo real.</div><button class="cloud-up" onclick="confirmMigrate()">☁️ Subir mi álbum a la nube</button></div>';
+}
+function setChip(kind){
+  if(kind==='cloud') cloudBanner().innerHTML='<div class="cloud-chip ok"><span class="cloud-dot"></span>Sincronizado con la familia</div>';
+  else if(kind==='local') cloudBanner().innerHTML='<div class="cloud-chip off"><span class="cloud-dot"></span>Modo local (sin conexión a la nube)</div>';
+}
+
+async function connectCloud(){
+  if(!window.supabase){ MODE='local'; setChip('local'); return; }
+  try{
+    sb=window.supabase.createClient(SB_URL,SB_KEY);
+    const {data,error}=await sb.from('figuritas').select('id,tenida,repetidas');
+    if(error) throw error;
+    if(data && data.length>0){
+      const cs={}; data.forEach(r=>{ if(r.tenida||r.repetidas>0) cs[r.id]={t:r.tenida?1:0,r:r.repetidas||0}; });
+      state=cs; MODE='cloud';
+      try{ localStorage.setItem('panini2026pwa',JSON.stringify(state)); }catch(e){}
+      renderAlbum(); updateStats(); setChip('cloud');
+    } else {
+      MODE='cloud-empty'; showMigrate();
+    }
+    subscribeRealtime();
+  }catch(e){ console.warn('Supabase:',e); MODE='local'; setChip('local'); }
+}
+
+async function pushCloud(id){
+  if(MODE!=='cloud'||!sb) return;
+  const v=get(id);
+  try{ await sb.from('figuritas').upsert({id,tenida:(v.t===1),repetidas:v.r||0,actualizado:new Date().toISOString()},{onConflict:'id'}); }
+  catch(e){ console.warn('push',e); }
+}
+
+function confirmMigrate(){
+  const n=Object.keys(state).length;
+  if(n===0){ showToast('No hay figuritas para subir todavía'); return; }
+  if(confirm('Vas a subir tu álbum ('+n+' figuritas marcadas) a la nube. A partir de ahí toda la familia comparte este mismo álbum. ¿Continuar?')) migrateUp();
+}
+async function migrateUp(){
+  if(!sb){ showToast('Sin conexión a la nube'); return; }
+  const rows=Object.entries(state).map(([id,v])=>({id,tenida:(v.t===1),repetidas:v.r||0,actualizado:new Date().toISOString()}));
+  showToast('Subiendo '+rows.length+' figuritas…');
+  try{
+    const {error}=await sb.from('figuritas').upsert(rows,{onConflict:'id'});
+    if(error) throw error;
+    MODE='cloud'; setChip('cloud'); showToast('✅ ¡Álbum subido a la nube!');
+  }catch(e){ console.warn(e); showToast('Error al subir, reintentá'); }
+}
+
+function subscribeRealtime(){
+  if(!sb) return;
+  sb.channel('figuritas-rt').on('postgres_changes',{event:'*',schema:'public',table:'figuritas'},payload=>{
+    const row=payload.new||payload.old; if(!row||!row.id) return; const id=row.id;
+    if(payload.eventType==='DELETE'||(!row.tenida&&!(row.repetidas>0))) delete state[id];
+    else state[id]={t:row.tenida?1:0,r:row.repetidas||0};
+    refreshSticker(id); const code=ID_TO_CODE[id]; if(code) updateCardProgress(code); updateStats();
+    try{ localStorage.setItem('panini2026pwa',JSON.stringify(state)); }catch(e){}
+  }).subscribe();
+}
+
+/* init */
 document.getElementById('m-total').textContent=TOTAL;
 load(); buildFilterBar(); renderAlbum(); updateStats();
+connectCloud();
 </script>
 </body>
 </html>
