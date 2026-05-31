@@ -50,7 +50,8 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opac
   display:flex;align-items:center;justify-content:center;color:var(--indigo)}
 .icon-btn:active{transform:scale(.92)}
 .icon-btn svg{width:20px;height:20px}
-.hdr-trophy{font-size:42px;line-height:1;flex-shrink:0;filter:drop-shadow(0 6px 10px rgba(200,150,20,.5))}
+.hdr-trophy{width:44px;height:50px;flex-shrink:0;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 5px 9px rgba(200,140,10,.55))}
+.hdr-trophy svg{width:100%;height:100%}
 .hdr-titles{flex:1;min-width:0}
 .hdr-kicker{font-size:11px;font-weight:800;letter-spacing:2.5px;color:var(--muted)}
 .hdr-title{font-size:28px;font-weight:800;line-height:0.95;letter-spacing:-0.6px;color:#16306b}
@@ -133,7 +134,9 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opac
   padding:15px 14px;margin-bottom:13px;animation:rise .4s ease both;overflow:hidden}
 .country-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;
   background:var(--cc,linear-gradient(90deg,var(--blue),var(--purple)))}
-.country-card.done{box-shadow:0 16px 34px -16px rgba(240,196,25,.7),0 0 0 2px rgba(240,196,25,.55) inset}
+.country-card.done{background:linear-gradient(180deg,#fffdf4,#fdf3da);box-shadow:0 16px 34px -14px rgba(217,119,6,.55),0 0 0 1.5px rgba(245,158,11,.5) inset}
+.done-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;letter-spacing:.6px;color:#fff;background:linear-gradient(135deg,#fbbf24,#d97706);padding:7px 12px;border-radius:99px;box-shadow:0 7px 16px -6px rgba(217,119,6,.8),inset 0 1px 0 rgba(255,255,255,.4);white-space:nowrap}
+.done-badge svg{width:15px;height:15px}
 .cc-head{display:flex;align-items:center;gap:12px;margin-bottom:11px}
 .flag-badge{width:50px;height:50px;flex-shrink:0;border-radius:50%;padding:3px;
   display:flex;align-items:center;justify-content:center;
@@ -224,7 +227,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opac
 <div class="app" id="app">
   <div class="hdr">
     <button class="icon-btn" onclick="scrollTopSmooth()" aria-label="Inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-    <span class="hdr-trophy">🏆</span>
+    <span class="hdr-trophy"><svg viewBox="0 0 48 56" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff7d6"/><stop offset=".32" stop-color="#fcd34d"/><stop offset=".68" stop-color="#f0a318"/><stop offset="1" stop-color="#b45309"/></linearGradient><linearGradient id="goldb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fcd34d"/><stop offset="1" stop-color="#a85a08"/></linearGradient></defs><path d="M13 5h22v8c0 11-4.5 18-11 18S13 24 13 13Z" fill="url(#gold)"/><path d="M14 6C6 6 6 23 16 22" fill="none" stroke="url(#goldb)" stroke-width="3.2" stroke-linecap="round"/><path d="M34 6c8 0 8 17-2 16" fill="none" stroke="url(#goldb)" stroke-width="3.2" stroke-linecap="round"/><path d="M18 7c1.5 9 3 14 6 16" stroke="#fffbe8" stroke-width="2" stroke-linecap="round" fill="none" opacity=".7"/><rect x="21.5" y="30" width="5" height="9" fill="url(#goldb)"/><rect x="16" y="38" width="16" height="3.5" rx="1.5" fill="url(#gold)"/><path d="M15 51l2.5-9h13l2.5 9z" fill="url(#gold)"/><rect x="12" y="50" width="24" height="5" rx="2" fill="url(#goldb)"/></svg></span>
     <div class="hdr-titles">
       <div class="hdr-kicker">FIGURITAS PANINI</div>
       <div class="hdr-title">MUNDIAL <b>2026</b></div>
@@ -383,7 +386,7 @@ function updateCardProgress(code){
   const n=sec.ids.length, pct=Math.round(owned/n*100), full=owned===n;
   const set=(id,txt)=>{const e=document.getElementById(id);if(e)e.textContent=txt;};
   set('sub-'+code,owned+' / '+n);
-  const pe=document.getElementById('pct-'+code); if(pe){pe.textContent=pct+'%';pe.className='cc-pct'+(full?' done':'');}
+  const pe=document.getElementById('pct-'+code); if(pe){ if(full){pe.innerHTML='<span class="done-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg>COMPLETO</span>';pe.className='cc-pct done';} else {pe.textContent=pct+'%';pe.className='cc-pct';} }
   const bar=document.getElementById('bar-'+code); if(bar){bar.style.width=pct+'%';bar.className='cc-fill'+(full?' done':'');}
   const card=document.getElementById('card-'+code); if(card) card.classList.toggle('done',full);
   set('mt-'+code,owned); set('mr-'+code,rep); set('mf-'+code,n-owned);
